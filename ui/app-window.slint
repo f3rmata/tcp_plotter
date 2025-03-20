@@ -4,8 +4,8 @@ import "../CaskaydiaCove-Regular.ttf";
 export component MainWindow inherits Window {
     pure callback render_plot() -> image;
     
-    in_out property <string> client_ip;
-    in_out property <int> client_port;
+    in_out property <string> server_ip;
+    in_out property <int> listen_port;
     in_out property <int> plot_process;
 
     title: "Im a Plotter";
@@ -22,7 +22,7 @@ export component MainWindow inherits Window {
             padding: 10px;
             Text {
                 font-size: 18px; 
-                text: "Client IP";
+                text: "Server IP";
                 vertical-alignment: TextVerticalAlignment.center;
             }
             
@@ -45,7 +45,7 @@ export component MainWindow inherits Window {
             }
             
             Button {
-                text: "Connect";
+                text: "Listen";
                 checkable: true;
                 clicked => {
                 }

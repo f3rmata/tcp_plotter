@@ -7,6 +7,7 @@ slint::slint! {
 }
 
 fn render_plot() -> slint::Image {
+    // TODO: add error handling rather than panic.
     let foreground = RGBAColor(255,255,255,0.8);
     let background = RGBAColor(40,40,40,1.0);
 

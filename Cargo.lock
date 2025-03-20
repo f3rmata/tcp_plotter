@@ -8,6 +8,7 @@ version = "0.1.0"
 dependencies = [
  "plotters",
  "serde",
+ "serde_json",
  "slint",
  "slint-build",
  "tokio",
