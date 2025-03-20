@@ -1,0 +1,65 @@
+import { GroupBox, HorizontalBox, VerticalBox, Button, ProgressIndicator, LineEdit } from "std-widgets.slint";
+import "../CaskaydiaCove-Regular.ttf";
+
+export component MainWindow inherits Window {
+    pure callback render_plot() -> image;
+    
+    in_out property <string> client_ip;
+    in_out property <int> client_port;
+    in_out property <int> plot_process;
+
+    title: "Im a Plotter";
+    min-width: 800px;
+    default-font-family: "Caskaydia Cove";
+    default-font-size: 15px;
+    min-height: 600px;
+
+    VerticalBox {
+        alignment: LayoutAlignment.space-between;
+        HorizontalBox {
+            alignment: LayoutAlignment.space-around;
+            spacing: 30px;
+            padding: 10px;
+            Text {
+                font-size: 18px; 
+                text: "Client IP";
+                vertical-alignment: TextVerticalAlignment.center;
+            }
+            
+            LineEdit {
+                input-type: InputType.text;
+                placeholder-text: "127.0.0.1";
+                width: 300px;
+            }
+        
+            Text {
+                font-size: 18px;
+                text: "Port";
+                vertical-alignment: TextVerticalAlignment.center;
+            }
+
+            LineEdit {
+                input-type: InputType.number;
+                placeholder-text: "2887";
+                width: 80px;
+            }
+            
+            Button {
+                text: "Connect";
+                checkable: true;
+                clicked => {
+                }
+            }
+        }
+        Image {
+            width: 80%;
+            image-fit: contain;
+            source: root.render_plot();
+        }
+        ProgressIndicator {
+            width: 80%;
+            height: 1%;
+            progress: plot_process;
+        }
+    }
+}
