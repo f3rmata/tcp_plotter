@@ -1,12 +1,14 @@
-import { GroupBox, HorizontalBox, VerticalBox, Button, ProgressIndicator, LineEdit } from "std-widgets.slint";
+import { GroupBox, HorizontalBox, VerticalBox, Button, ProgressIndicator, LineEdit, Palette } from "std-widgets.slint";
 import "../CaskaydiaCove-Regular.ttf";
 
 export component MainWindow inherits Window {
     pure callback render_plot() -> image;
+    pure callback tcp_server(string, int);
     
-    in_out property <string> server_ip;
-    in_out property <int> listen_port;
-    in_out property <int> plot_process;
+    out property <string> appid;
+    out property <string> server_ip;
+    out property <int> listen_port;
+    in property <int> plot_process;
 
     title: "Im a Plotter";
     min-width: 800px;
@@ -27,9 +29,13 @@ export component MainWindow inherits Window {
             }
             
             LineEdit {
-                input-type: InputType.text;
+                input-type: text;
                 placeholder-text: "127.0.0.1";
                 width: 300px;
+                text: root.server_ip;
+                edited(text) => {
+                    root.server_ip = text;
+                }
             }
         
             Text {
@@ -39,15 +45,20 @@ export component MainWindow inherits Window {
             }
 
             LineEdit {
-                input-type: InputType.number;
+                input-type: number;
                 placeholder-text: "2887";
                 width: 80px;
+                text: root.listen_port;
+                edited(text) => {
+                    root.listen_port = text.to-float();
+                }
             }
             
             Button {
                 text: "Listen";
                 checkable: true;
                 clicked => {
+                    root.tcp_server(server_ip, listen_port);
                 }
             }
         }
@@ -55,6 +66,7 @@ export component MainWindow inherits Window {
             width: 80%;
             image-fit: contain;
             source: root.render_plot();
+            accessible-label: "Loading....";
         }
         ProgressIndicator {
             width: 80%;
