@@ -54,29 +54,36 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap();
     }))?;
 
-    let image_model = Arc::new(Mutex::new(slint::Image::default()));
+    // let image_model = Arc::new(Mutex::new(slint::Image::default()));
 
-    let image_model_clone = image_model.clone();
+    // let image_model_clone = image_model.clone();
     let main_window_weak = main_window.as_weak();
     slint::spawn_local(async_compat::Compat::new(async move {
-        let cord = rx.recv().await.unwrap();
-        println!("received {:?}", cord);
+        loop {
+            let cord = rx.recv().await.unwrap();
+            println!("received {:?}", cord);
+    
+            let mut pixel_buffer = SharedPixelBuffer::new(1440, 960);
+            call_plotter(&mut pixel_buffer, cord).unwrap();
+            //*image_model_clone.lock().unwrap() = image;
 
-        let mut pixel_buffer = SharedPixelBuffer::new(1440, 960);
-        call_plotter(&mut pixel_buffer, cord).unwrap();
-        let image = slint::Image::from_rgb8(pixel_buffer);
-        *image_model_clone.lock().unwrap() = image;
-
-        main_window_weak.unwrap().invoke_render_plot();
-        main_window_weak.unwrap().window().request_redraw();
-        slint::invoke_from_event_loop(move || main_window_weak.unwrap().set_plot_process(0.5)).unwrap();
+            let ui_clone = main_window_weak.clone();
+            slint::invoke_from_event_loop( move || {
+                if let Some(ui) = ui_clone.upgrade() {
+                    let image = slint::Image::from_rgb8(pixel_buffer);
+                    ui.set_plot_process(0.5);
+                    ui.set_plot(image);
+                    // ui.invoke_render_plot();
+                    ui.window().request_redraw();
+                };
+            }).unwrap();
+        }
     }))?;
 
-    main_window.on_render_plot(move || {
-        println!("call render plot");
-        image_model.lock().unwrap().clone()
-    });
-    println!("called render plot");
+    // main_window.on_render_plot(move || {
+    //     println!("called render plot");
+    //     // image_model.lock().unwrap().clone()
+    // });
 
     main_window.run()?;
 
