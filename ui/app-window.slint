@@ -1,14 +1,15 @@
-import { GroupBox, HorizontalBox, VerticalBox, Button, ProgressIndicator, LineEdit, Palette } from "std-widgets.slint";
+import { GroupBox, HorizontalBox, VerticalBox, Button, ProgressIndicator, LineEdit, Palette, TabWidget, TextEdit } from "std-widgets.slint";
 import "../CaskaydiaCove-Regular.ttf";
 
 export component MainWindow inherits Window {
     pure callback render_plot() -> image;
-    pure callback tcp_server(string, int);
+    pure callback tcp_server(string, int, bool);
     
     out property <string> appid;
-    out property <string> server_ip;
-    out property <int> listen_port;
+    out property <string> server_ip: "127.0.0.1";
+    out property <int> listen_port: 2887;
     in property <int> plot_process;
+    in-out property <bool> pressed : false;
 
     title: "Im a Plotter";
     min-width: 800px;
@@ -57,17 +58,34 @@ export component MainWindow inherits Window {
             Button {
                 text: "Listen";
                 checkable: true;
+                enabled: !pressed;
+                primary: true;
                 clicked => {
-                    root.tcp_server(server_ip, listen_port);
+                    root.tcp_server(server_ip, listen_port, pressed);
+                    pressed = !pressed;
                 }
             }
         }
-        Image {
+
+        TabWidget {
+            height: 80%;
             width: 80%;
-            image-fit: contain;
-            source: root.render_plot();
-            accessible-label: "Loading....";
+            Tab {
+                title: "Graph";
+                VerticalBox {
+                    Image {
+                        image-fit: contain;
+                        source: root.render_plot();
+                        accessible-label: "Loading....";
+                    }
+                }
+            }
+            Tab {
+                title: "Console";
+                TextEdit {}
+            }
         }
+
         ProgressIndicator {
             width: 80%;
             height: 1%;
