@@ -17,7 +17,7 @@ fn get_plot() -> slint::Image {
     slint::Image::from_rgb8(pixel_buffer)
 }
 
-fn start_server(server_ip: slint::SharedString, listen_port: i32) {
+fn start_server(server_ip: slint::SharedString, listen_port: i32, _pressed: bool) {
     let server_ip: Ipv4Addr =
         Ipv4Addr::from_str(server_ip.as_str()).expect("Parse ipv4 addr failed!");
     let listen_port: u16 = listen_port.try_into().expect("Port is not valid!");
@@ -26,7 +26,7 @@ fn start_server(server_ip: slint::SharedString, listen_port: i32) {
     // slint::run_event_loop_until_quit().unwrap();
 }
 
-fn server_controller(server_ip: slint::SharedString, listen_port: i32, pressed: bool) {}
+// fn server_controller(server_ip: slint::SharedString, listen_port: i32, pressed: bool) {}
 
 fn main() -> Result<(), Box<dyn Error>> {
     let main_window = MainWindow::new()?;

@@ -24,7 +24,7 @@ pub mod tcp_receiver {
     async fn handle_connection(
         mut socket: TcpStream,
         addr: SocketAddr,
-    ) -> Result<Vec<Cordinate>, Box<dyn Error>> {
+    ) -> Result<Option<Cordinate>, Box<dyn Error>> {
         let mut reader = BufReader::new(&mut socket);
         let mut json_data = String::new();
 
@@ -32,36 +32,48 @@ pub mod tcp_receiver {
         reader.read_line(&mut json_data).await?;
 
         // 解析JSON数据
-        let cordinate_data: Cordinate = serde_json::from_str(&json_data)?;
-        let mut cordinates: Vec<Cordinate> = Vec::new();
-        println!("Received from {}: {:?}", addr, cordinate_data);
-        cordinates.push(cordinate_data);
-
-        // 发送响应
-        socket
-            .write_all(b"Cordinates received successfully\n")
-            .await?;
-
-        Ok(cordinates)
+        match serde_json::from_str(&json_data.trim()) {
+            Ok(cord) => {
+                println!("Received from {}: {:?}", addr, cord);
+                socket.write(b"Cordinate received\n").await?;
+                Ok(cord)
+            }
+            Err(e) => {
+                eprintln!("{e}");
+                socket
+                    .write(format!("Error parsing: {e}\n").as_bytes())
+                    .await?;
+                Ok(None)
+            }
+        }
     }
 
     pub fn tcp_server(server_ip: Ipv4Addr, listen_port: u16) -> Result<(), Box<dyn Error>> {
         let slint_future = async_compat::Compat::new(async move {
             let server = TcpListener::bind((server_ip, listen_port)).await.unwrap();
             println!("Server listening on port {server_ip}:{listen_port}");
+            let mut cordinates: Vec<Cordinate> = Vec::new();
             loop {
                 let (mut socket, addr) = server.accept().await.unwrap();
                 socket
-                    .write(format!("hello! {addr:?}").as_bytes())
+                    .write(format!("hello! {addr:?}\n").as_bytes())
                     .await
                     .unwrap();
 
-                handle_connection(socket, addr).await.unwrap();
+                match handle_connection(socket, addr).await {
+                    Ok(cord) => {
+                        match cord {
+                            Some(cordinate) => cordinates.push(cordinate),
+                            None => continue,
+                        };
+                    }
+                    Err(e) => return e,
+                };
             }
             // slint::quit_event_loop().unwrap();
         });
 
-        println!("Acquiring...");
+        println!("Start Listening...");
         let _thread_local = slint::spawn_local(slint_future).unwrap();
 
         Ok(())
