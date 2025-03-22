@@ -2,7 +2,7 @@ use slint::{ComponentHandle, SharedPixelBuffer};
 use std::error::Error;
 use std::net::Ipv4Addr;
 use std::str::FromStr;
-use std::sync::Arc;
+use std::sync::{Arc, Mutex};
 use tcp_plotter::plot::call_plotter;
 use tcp_plotter::tcp_receiver::*;
 use tokio::sync::{mpsc, Notify};
@@ -17,8 +17,8 @@ fn main() -> Result<(), Box<dyn Error>> {
     slint::set_xdg_app_id(main_window.get_appid())?;
 
     let start_server = Arc::new(Notify::new());
-    let server_ip = Arc::new(std::sync::Mutex::new(Ipv4Addr::new(127, 0, 0, 1)));
-    let listen_port = Arc::new(std::sync::Mutex::new(2887));
+    let server_ip = Arc::new(Mutex::new(Ipv4Addr::new(127, 0, 0, 1)));
+    let listen_port = Arc::new(Mutex::new(2887));
     let (tx, mut rx) = mpsc::channel::<Vec<Cordinate>>(8);
 
     // add ref count for callback function here.
@@ -54,25 +54,29 @@ fn main() -> Result<(), Box<dyn Error>> {
         .unwrap();
     }))?;
 
-    let image_model = Arc::new(std::sync::Mutex::new(slint::Image::default()));
+    let image_model = Arc::new(Mutex::new(slint::Image::default()));
 
     let image_model_clone = image_model.clone();
     let main_window_weak = main_window.as_weak();
     slint::spawn_local(async_compat::Compat::new(async move {
         let cord = rx.recv().await.unwrap();
         println!("received {:?}", cord);
-        main_window_weak.unwrap().set_plot_process(0.5);
 
         let mut pixel_buffer = SharedPixelBuffer::new(1440, 960);
-        call_plotter(&mut pixel_buffer).unwrap();
+        call_plotter(&mut pixel_buffer, cord).unwrap();
         let image = slint::Image::from_rgb8(pixel_buffer);
         *image_model_clone.lock().unwrap() = image;
 
         main_window_weak.unwrap().invoke_render_plot();
         main_window_weak.unwrap().window().request_redraw();
+        slint::invoke_from_event_loop(move || main_window_weak.unwrap().set_plot_process(0.5)).unwrap();
     }))?;
 
-    main_window.on_render_plot(move || image_model.lock().unwrap().clone());
+    main_window.on_render_plot(move || {
+        println!("call render plot");
+        image_model.lock().unwrap().clone()
+    });
+    println!("called render plot");
 
     main_window.run()?;
 

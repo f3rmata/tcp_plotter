@@ -11,12 +11,12 @@ pub mod tcp_receiver {
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Cordinate {
-        x: f64,
-        y: f64,
+        pub x: i32,
+        pub y: i32,
     }
 
     impl Cordinate {
-        pub fn new(x: f64, y: f64) -> Cordinate {
+        pub fn new(x: i32, y: i32) -> Cordinate {
             Cordinate { x, y }
         }
     }
@@ -90,14 +90,17 @@ pub mod plot {
     use plotters::{prelude::*, style::full_palette::BLUEGREY};
     use slint::{Rgb8Pixel, SharedPixelBuffer};
     use std::error::Error;
+    use crate::tcp_receiver::Cordinate;
 
     pub fn call_plotter(
         pixel_buffer: &mut SharedPixelBuffer<Rgb8Pixel>,
+        data_series: Vec<Cordinate>,
     ) -> Result<(), Box<dyn Error>> {
         // TODO: add error handling rather than panic.
         let foreground = RGBAColor(255, 255, 255, 0.8);
         let background = RGBAColor(40, 40, 40, 1.0);
 
+        println!("ploting...");
         let size = (pixel_buffer.width(), pixel_buffer.height());
         let backend = BitMapBackend::with_buffer(pixel_buffer.make_mut_bytes(), size);
 
@@ -107,7 +110,7 @@ pub mod plot {
             .margin(20)
             .x_label_area_size(80)
             .y_label_area_size(80)
-            .build_cartesian_2d(-1f32..1f32, -0.1f32..1f32)
+            .build_cartesian_2d(0..4096, 0..4096)
             .expect("error building chart...");
 
         chart
@@ -121,7 +124,7 @@ pub mod plot {
 
         chart
             .draw_series(LineSeries::new(
-                (-50..=50).map(|x| x as f32 / 50.0).map(|x| (x, x * x)),
+                data_series.iter().map(|x| (x.x, x.y)),
                 ShapeStyle::from(&BLUEGREY).stroke_width(3),
             ))
             .expect("error drawing series...")
