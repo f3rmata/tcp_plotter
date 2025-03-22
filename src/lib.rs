@@ -9,7 +9,7 @@ pub mod tcp_receiver {
         net::{TcpListener, TcpStream},
     };
 
-    #[derive(Debug, Serialize, Deserialize)]
+    #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Cordinate {
         x: f64,
         y: f64,
@@ -48,7 +48,11 @@ pub mod tcp_receiver {
         }
     }
 
-    pub fn tcp_server(server_ip: Ipv4Addr, listen_port: u16) -> Result<(), Box<dyn Error>> {
+    pub fn tcp_server(
+        server_ip: Ipv4Addr,
+        listen_port: u16,
+        tx: tokio::sync::mpsc::Sender<Vec<Cordinate>>,
+    ) -> Result<(), Box<dyn Error>> {
         let slint_future = async_compat::Compat::new(async move {
             let server = TcpListener::bind((server_ip, listen_port)).await.unwrap();
             println!("Server listening on port {server_ip}:{listen_port}");
@@ -69,12 +73,14 @@ pub mod tcp_receiver {
                     }
                     Err(e) => return e,
                 };
+                println!("{:?}", cordinates);
+                tx.send(cordinates.clone()).await.unwrap();
             }
             // slint::quit_event_loop().unwrap();
         });
 
         println!("Start Listening...");
-        let _thread_local = slint::spawn_local(slint_future).unwrap();
+        let _thread_local = slint::spawn_local(slint_future)?;
 
         Ok(())
     }
