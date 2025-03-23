@@ -73,17 +73,11 @@ fn main() -> Result<(), Box<dyn Error>> {
                     let image = slint::Image::from_rgb8(pixel_buffer);
                     ui.set_plot_process(0.5);
                     ui.set_plot(image);
-                    // ui.invoke_render_plot();
                     ui.window().request_redraw();
                 };
             }).unwrap();
         }
     }))?;
-
-    // main_window.on_render_plot(move || {
-    //     println!("called render plot");
-    //     // image_model.lock().unwrap().clone()
-    // });
 
     main_window.run()?;
 

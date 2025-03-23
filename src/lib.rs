@@ -12,19 +12,13 @@ pub mod tcp_receiver {
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Cordinate {
         pub x: i32,
-        pub y: i32,
-    }
-
-    impl Cordinate {
-        pub fn new(x: i32, y: i32) -> Cordinate {
-            Cordinate { x, y }
-        }
+        pub y: f64,
     }
 
     async fn handle_connection(
         mut socket: TcpStream,
         addr: SocketAddr,
-    ) -> Result<Option<Cordinate>, Box<dyn Error>> {
+    ) -> Result<Option<Vec<Cordinate>>, Box<dyn Error>> {
         let mut reader = BufReader::new(&mut socket);
         let mut json_data = String::new();
 
@@ -37,7 +31,7 @@ pub mod tcp_receiver {
                 println!("Received from {}: {:?}", addr, cord);
                 socket.write(b"Cordinate received\n").await?;
                 Ok(cord)
-            }
+            },
             Err(e) => {
                 eprintln!("{e}");
                 socket
@@ -65,9 +59,9 @@ pub mod tcp_receiver {
                     .unwrap();
 
                 match handle_connection(socket, addr).await {
-                    Ok(cord) => {
-                        match cord {
-                            Some(cordinate) => cordinates.push(cordinate),
+                    Ok(cord_option) => {
+                        match cord_option {
+                            Some(cord) => cordinates = [cordinates, cord].concat(),
                             None => continue,
                         };
                     }
@@ -110,7 +104,7 @@ pub mod plot {
             .margin(20)
             .x_label_area_size(80)
             .y_label_area_size(80)
-            .build_cartesian_2d(0..4096, 0..4096)
+            .build_cartesian_2d(0..4096, 0f64..1f64)
             .expect("error building chart...");
 
         chart
@@ -128,7 +122,7 @@ pub mod plot {
                 ShapeStyle::from(&BLUEGREY).stroke_width(3),
             ))
             .expect("error drawing series...")
-            .label("y = x^2")
+            .label("freq/amp response")
             .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUEGREY));
 
         chart
