@@ -71,7 +71,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             slint::invoke_from_event_loop( move || {
                 if let Some(ui) = ui_clone.upgrade() {
                     let image = slint::Image::from_rgb8(pixel_buffer);
-                    ui.set_plot_process(0.5);
+                    ui.set_plot_process(1.0);
                     ui.set_plot(image);
                     ui.window().request_redraw();
                 };
