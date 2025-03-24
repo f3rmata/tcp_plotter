@@ -1,5 +1,29 @@
-import { GroupBox, HorizontalBox, VerticalBox, Button, ProgressIndicator, LineEdit, Palette, TabWidget, TextEdit } from "std-widgets.slint";
+import { HorizontalBox, VerticalBox, Button, StandardButton, ProgressIndicator, LineEdit, TabWidget, TextEdit } from "std-widgets.slint";
 import "../CaskaydiaCove-Regular.ttf";
+
+export component ErrorDialog inherits Dialog {
+    in property <string> error_mesg;
+
+    preferred-width: 200px;
+    default-font-family: "Caskaydia Cove";
+    default-font-size: 15px;
+    preferred-height: 70px;
+
+    title: "Error";
+    Text {
+      text: "⚠ Error:" + error_mesg;
+    }
+    StandardButton{ 
+        kind: ok; 
+        clicked => {
+           root.visible=false;
+        }
+    }
+    Button {
+      text: "More Info";
+      dialog-button-role: action;
+    }
+}
 
 export component MainWindow inherits Window {
     pure callback render_plot() -> image;

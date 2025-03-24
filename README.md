@@ -10,7 +10,7 @@ Using cargo to build this application.
 cargo build --release
 ```
 
-Transmit your cordinates data in one line json. End with `\n`
+Transmit your cordinates data in one line json. End with `\n`  
 note: x -> i32, y -> f64
 
 ---
