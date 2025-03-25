@@ -16,7 +16,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let main_window = MainWindow::new()?;
     slint::set_xdg_app_id(main_window.get_appid())?;
 
-    let (tx_e, mut rx_e) = tokio::sync::mpsc::channel::<Box<dyn Error>>(12);
+    let (tx_e, rx_e) = std::sync::mpsc::channel::<Arc<Box<dyn Error + Send + Sync>>>();
 
     let start_server = Arc::new(Notify::new());
     let server_ip = Arc::new(Mutex::new(Ipv4Addr::new(127, 0, 0, 1)));
@@ -27,19 +27,29 @@ fn main() -> Result<(), Box<dyn Error>> {
     let server_ip_ui = server_ip.clone();
     let listen_port_ui = listen_port.clone();
     let start_server_ui = start_server.clone();
+    let main_window_weak = main_window.as_weak();
     main_window.on_tcp_server(move |server_ip_i, listen_port_i, pressed| {
         if !pressed {
+            let ui = main_window_weak.clone();
             let server_ip: Ipv4Addr = match Ipv4Addr::from_str(server_ip_i.as_str()) {
                 Ok(ip) => ip,
                 Err(e) => {
-                    let _ = tx_e.try_send(Box::new(e));
+                    let _ = tx_e.send(Arc::new(Box::new(e)));
+                    slint::invoke_from_event_loop(move || {
+                        ui.upgrade().unwrap().set_pressed(false);
+                        ui.upgrade().unwrap().window().request_redraw();
+                    }).unwrap();
                     return;
                 }
             };
             let listen_port: u16 = match listen_port_i.try_into() {
                 Ok(port) => port,
                 Err(e) => {
-                    let _ = tx_e.try_send(Box::new(e));
+                    let _ = tx_e.send(Arc::new(Box::new(e)));
+                    slint::invoke_from_event_loop(move || {
+                        ui.upgrade().unwrap().set_pressed(false);
+                        ui.upgrade().unwrap().window().request_redraw();
+                    }).unwrap();
                     return;
                 }
             };
@@ -92,15 +102,14 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }))?;
 
-    slint::spawn_local(async_compat::Compat::new(async move {
+    std::thread::spawn(move || {
         loop {
-            if let Some(catched_error) = rx_e.recv().await {
-                let error_dialog = ErrorDialog::new().unwrap();
-                error_dialog.set_error_mesg(format!("{}", catched_error).into());
-                error_dialog.run().unwrap();
-            }
+            let catched_error = rx_e.recv().unwrap();
+            let error_dialog = ErrorDialog::new().unwrap();
+            error_dialog.set_error_mesg(format!("{}", catched_error).into());
+            error_dialog.run().unwrap();
         }
-    }))?;
+    });
 
     main_window.run()?;
     Ok(())
