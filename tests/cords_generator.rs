@@ -15,7 +15,7 @@ fn generate_cords() -> Result<()> {
     let json = serde_json::to_string(&cordinates)?;
     println!("Output:\n {json}");
     let mut json_file = File::create("tests/cords.txt").expect("Failed to create file");
-    json_file.write_all(json.as_bytes()).expect("Failed to write to file");
+    json_file.write_all([json, "\n".to_string()].concat().as_bytes()).expect("Failed to write to file");
     
     Ok(())
 }

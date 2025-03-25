@@ -46,9 +46,9 @@ export component MainWindow inherits Window {
     VerticalBox {
         // alignment: LayoutAlignment.space-between;
         HorizontalBox {
-            alignment: LayoutAlignment.start;
-            spacing: 16px;
-            padding: 8px;
+            alignment: LayoutAlignment.stretch;
+            spacing: 32px;
+            padding: 16px;
             Text {
                 font-size: 18px;
                 horizontal-stretch: 0;
@@ -61,7 +61,7 @@ export component MainWindow inherits Window {
             LineEdit {
                 input-type: text;
                 placeholder-text: "127.0.0.1";
-                width: 100px;
+                // width: 200px;
                 text: root.server_ip;
                 edited(text) => {
                     root.server_ip = text;
@@ -78,7 +78,7 @@ export component MainWindow inherits Window {
             LineEdit {
                 input-type: number;
                 placeholder-text: "2887";
-                width: 64px;
+                width: 15%;
                 text: root.listen_port;
                 edited(text) => {
                     root.listen_port = text.to-float();
