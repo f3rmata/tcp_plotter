@@ -60,6 +60,10 @@ fn main() -> Result<(), Box<dyn Error>> {
             *port = listen_port;
 
             start_server_ui.notify_one();
+            slint::invoke_from_event_loop(move || {
+                ui.upgrade().unwrap().set_console("Server starting...".into());
+                ui.upgrade().unwrap().window().request_redraw();
+            }).unwrap()
         } else {
             // TODO: add gracefully stop notify here.
         }
@@ -102,12 +106,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }))?;
 
-    std::thread::spawn(move || {
+    let main_window_weak = main_window.as_weak();
+    let _error_thread = std::thread::spawn(move || {
         loop {
-            let catched_error = rx_e.recv().unwrap();
-            let error_dialog = ErrorDialog::new().unwrap();
-            error_dialog.set_error_mesg(format!("{}", catched_error).into());
-            error_dialog.run().unwrap();
+            let catched_error = match rx_e.try_recv() {
+                Ok(e) => e,
+                Err(std::sync::mpsc::TryRecvError::Empty) => { continue; },
+                Err(std::sync::mpsc::TryRecvError::Disconnected) => { break; },
+            };
+            
+            let error_mesg = format!("{catched_error}");
+            println!("{}", error_mesg);
+            let ui = main_window_weak.clone();
+            ui.upgrade_in_event_loop(move |ui| {
+                ui.set_console(error_mesg.into());
+            }).unwrap()
+            // let error_dialog = ErrorDialog::new().unwrap();
+            // error_dialog.set_error_mesg(format!("{}", catched_error).into());
+            // error_dialog.run().unwrap();
         }
     });
 

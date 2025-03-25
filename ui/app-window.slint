@@ -34,6 +34,7 @@ export component MainWindow inherits Window {
     out property <int> listen_port: 2887;
     in property <float> plot_process;
     in property <image> plot;
+    in property <string> console;
     in-out property <bool> pressed : false;
 
     title: "Im a simple Tcp Plotter";
@@ -107,7 +108,11 @@ export component MainWindow inherits Window {
             }
             Tab {
                 title: "Console";
-                TextEdit {}
+                TextEdit {
+                    read-only: true;
+                    wrap: word-wrap;
+                    text: root.console;
+                }
             }
         }
 
