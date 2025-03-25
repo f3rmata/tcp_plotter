@@ -39,26 +39,29 @@ export component MainWindow inherits Window {
 
     title: "Im a simple Tcp Plotter";
     min-width: 800px;
+    min-height: 600px;
     default-font-family: "Caskaydia Cove";
     default-font-size: 15px;
-    min-height: 600px;
 
     VerticalBox {
-        alignment: LayoutAlignment.space-between;
+        // alignment: LayoutAlignment.space-between;
         HorizontalBox {
-            alignment: LayoutAlignment.space-around;
-            spacing: 30px;
-            padding: 10px;
+            alignment: LayoutAlignment.start;
+            spacing: 16px;
+            padding: 8px;
             Text {
-                font-size: 18px; 
+                font-size: 18px;
+                horizontal-stretch: 0;
+                vertical-stretch: 0;
                 text: "Server IP";
                 vertical-alignment: TextVerticalAlignment.center;
+                horizontal-alignment: TextHorizontalAlignment.center;
             }
             
             LineEdit {
                 input-type: text;
                 placeholder-text: "127.0.0.1";
-                width: 300px;
+                width: 100px;
                 text: root.server_ip;
                 edited(text) => {
                     root.server_ip = text;
@@ -69,12 +72,13 @@ export component MainWindow inherits Window {
                 font-size: 18px;
                 text: "Port";
                 vertical-alignment: TextVerticalAlignment.center;
+                horizontal-alignment: TextHorizontalAlignment.center;
             }
 
             LineEdit {
                 input-type: number;
                 placeholder-text: "2887";
-                width: 80px;
+                width: 64px;
                 text: root.listen_port;
                 edited(text) => {
                     root.listen_port = text.to-float();
@@ -94,8 +98,8 @@ export component MainWindow inherits Window {
         }
 
         TabWidget {
-            height: 80%;
-            width: 80%;
+            vertical-stretch: 1;
+            horizontal-stretch: 1;
             Tab {
                 title: "Graph";
                 VerticalBox {
@@ -109,6 +113,8 @@ export component MainWindow inherits Window {
             Tab {
                 title: "Console";
                 TextEdit {
+                    height: 100%;
+                    width: 100%;
                     read-only: true;
                     wrap: word-wrap;
                     text: root.console;
@@ -118,7 +124,7 @@ export component MainWindow inherits Window {
 
         ProgressIndicator {
             width: 80%;
-            height: 1%;
+            height: 5px;
             progress: plot_process;
         }
     }

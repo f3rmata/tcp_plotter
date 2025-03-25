@@ -3,6 +3,7 @@ pub mod tcp_receiver {
     use std::{
         error::Error,
         net::{Ipv4Addr, SocketAddr},
+        str::FromStr,
     };
     use tokio::{
         io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
@@ -31,7 +32,7 @@ pub mod tcp_receiver {
                 println!("Received from {}: {:?}", addr, cord);
                 socket.write(b"Cordinate received\n").await?;
                 Ok(cord)
-            },
+            }
             Err(e) => {
                 eprintln!("{e}");
                 socket
@@ -42,11 +43,21 @@ pub mod tcp_receiver {
         }
     }
 
+    pub fn parse_socket(
+        server: slint::SharedString,
+        port: i32,
+    ) -> Result<(Ipv4Addr, u16), Box<dyn Error + Send + Sync>> {
+        let server_ip: Ipv4Addr = Ipv4Addr::from_str(server.as_str())?;
+        let listen_port: u16 = port.try_into()?;
+
+        Ok((server_ip, listen_port))
+    }
+
     pub fn tcp_server(
         server_ip: Ipv4Addr,
         listen_port: u16,
-        tx: tokio::sync::mpsc::Sender<Vec<Cordinate>>,
-    ) -> Result<(), Box<dyn Error>> {
+        tx: std::sync::mpsc::Sender<Vec<Cordinate>>,
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         let slint_future = async_compat::Compat::new(async move {
             let server = TcpListener::bind((server_ip, listen_port)).await.unwrap();
             println!("Server listening on port {server_ip}:{listen_port}");
@@ -68,7 +79,7 @@ pub mod tcp_receiver {
                     Err(e) => return e,
                 };
                 println!("{:?}", cordinates);
-                tx.send(cordinates.clone()).await.unwrap();
+                tx.send(cordinates.clone()).unwrap();
             }
             // slint::quit_event_loop().unwrap();
         });
@@ -81,15 +92,15 @@ pub mod tcp_receiver {
 }
 
 pub mod plot {
+    use crate::tcp_receiver::Cordinate;
     use plotters::{prelude::*, style::full_palette::BLUEGREY};
     use slint::{Rgb8Pixel, SharedPixelBuffer};
     use std::error::Error;
-    use crate::tcp_receiver::Cordinate;
 
     pub fn call_plotter(
         pixel_buffer: &mut SharedPixelBuffer<Rgb8Pixel>,
         data_series: Vec<Cordinate>,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), Box<dyn Error + Send + Sync>> {
         // TODO: add error handling rather than panic.
         let foreground = RGBAColor(255, 255, 255, 0.8);
         let background = RGBAColor(40, 40, 40, 1.0);
@@ -99,13 +110,12 @@ pub mod plot {
         let backend = BitMapBackend::with_buffer(pixel_buffer.make_mut_bytes(), size);
 
         let root = backend.into_drawing_area();
-        root.fill(&background).expect("error filling drawing area");
+        root.fill(&background)?;
         let mut chart = ChartBuilder::on(&root)
             .margin(20)
             .x_label_area_size(80)
             .y_label_area_size(80)
-            .build_cartesian_2d(0..4096, 0f64..1f64)
-            .expect("error building chart...");
+            .build_cartesian_2d(0..4096, 0f64..1f64)?;
 
         chart
             .configure_mesh()
@@ -113,8 +123,7 @@ pub mod plot {
             .label_style(("sans-serif", 20).into_font().color(&foreground))
             .bold_line_style(&foreground.mix(0.15))
             .light_line_style(&foreground.mix(0.05))
-            .draw()
-            .expect("error drawing...");
+            .draw()?;
 
         chart
             .draw_series(LineSeries::new(
@@ -130,10 +139,9 @@ pub mod plot {
             .background_style(&background.mix(0.8))
             .border_style(&WHITE)
             .label_font(("sans-serif", 25).with_color(&foreground))
-            .draw()
-            .expect("error configuring...");
+            .draw()?;
 
-        root.present().expect("error presenting");
+        root.present()?;
         drop(chart);
         drop(root);
 
