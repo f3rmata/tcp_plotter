@@ -38,6 +38,6 @@ jobs:
       with:
         name: tcp_plotter
         path: |
-          ${{ steps.build.outputs.BUILT_ARCHIVE }}
-          ${{ steps.build.outputs.BUILT_CHECKSUM }}
+          "target/release/tcp_plotter"
+          "target/release/tcp_plotter.exe"
           
