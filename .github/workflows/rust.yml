@@ -12,7 +12,16 @@ env:
 jobs:
   build:
 
-    runs-on: ubuntu-latest
+    strtegy:
+      matrix:
+        BUILD_TARGET: [release]
+        os: [ubuntu-latest, windows-latest]
+
+    runs-on: ${{ matrix.os }}
+    env: SLINT_STYLE=fluent-dark
+    
+    outputs:
+      release_built: ${{ steps.set-output.outputs.release_built }}
 
     steps:
     - uses: actions/checkout@v4
@@ -22,3 +31,8 @@ jobs:
       run: cargo build --verbose
     - name: Run tests
       run: cargo test --verbose
+    - name: Upload release artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: tcp_plotter
+        path: target/${{ matrix.BUILD_TARGET }}/tcp_plotter

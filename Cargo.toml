@@ -16,3 +16,6 @@ tokio-stream = {version = "0.1.17", features = ["full"]}
 
 [build-dependencies]
 slint-build = "1.8.0"
+
+[profile.release]
+opt-level = 3
