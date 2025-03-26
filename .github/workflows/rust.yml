@@ -38,6 +38,6 @@ jobs:
       with:
         name: tcp_plotter
         path: |
-          "target/release/tcp_plotter"
-          "target/release/tcp_plotter.exe"
+          target/release/tcp_plotter
+          target/release/tcp_plotter.exe
           
