@@ -11,22 +11,23 @@ env:
 
 jobs:
   build:
-
+    env: 
+      SLINT_STYLE: fluent-dark
     strategy:
       matrix:
         BUILD_TARGET: [release]
         os: [ubuntu-latest, windows-latest]
 
     runs-on: ${{ matrix.os }}
-    env: SLINT_STYLE=fluent-dark
-    
-    outputs:
-      release_built: ${{ steps.set-output.outputs.release_built }}
 
     steps:
     - uses: actions/checkout@v4
     - name: Install Dependencies
-      run: sudo apt update -y && sudo apt install -y fontconfig libfontconfig1-dev
+      shell: bash
+      run: |
+        if [[ "${{ matrix.os }}" == "ubuntu-latest" ]]; then
+          sudo apt update -y && sudo apt install -y fontconfig libfontconfig1-dev
+        fi
     - name: Build
       run: cargo build --verbose
     - name: Run tests
