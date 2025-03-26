@@ -12,7 +12,7 @@ env:
 jobs:
   build:
 
-    strtegy:
+    strategy:
       matrix:
         BUILD_TARGET: [release]
         os: [ubuntu-latest, windows-latest]
