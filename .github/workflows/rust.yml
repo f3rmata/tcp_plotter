@@ -36,7 +36,7 @@ jobs:
     - name: Upload release artifact
       uses: actions/upload-artifact@v4
       with:
-        name: tcp_plotter
+        name: tcp_plotter-${{ matrix.os }}-${{ matrix.BUILD_TARGET }}
         path: |
           target/release/tcp_plotter
           target/release/tcp_plotter.exe
