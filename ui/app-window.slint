@@ -40,7 +40,10 @@ export component MainWindow inherits Window {
     in property <string> console;
     in-out property <bool> pressed : false;
 
-    property <bool> dark-color-theme: Palette.color-scheme == ColorScheme.dark;
+    // property <bool> dark-color-theme: Palette.color-scheme = ColorScheme.dark;
+    init => {
+        Palette.color-scheme = ColorScheme.dark;
+    }
 
     title: "Im a simple Tcp Plotter";
     min-width: 850px;
@@ -55,7 +58,7 @@ export component MainWindow inherits Window {
             spacing: 32px;
             padding: 16px;
             Text {
-                font-size: 18px;
+                font-size: 15px;
                 horizontal-stretch: 0;
                 vertical-stretch: 0;
                 text: "Server IP";
@@ -74,7 +77,7 @@ export component MainWindow inherits Window {
             }
         
             Text {
-                font-size: 18px;
+                font-size: 15px;
                 text: "Port";
                 vertical-alignment: TextVerticalAlignment.center;
                 horizontal-alignment: TextHorizontalAlignment.center;
