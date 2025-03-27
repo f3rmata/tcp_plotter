@@ -4,15 +4,17 @@ pub mod tcp_receiver {
         error::Error,
         net::{Ipv4Addr, SocketAddr},
         str::FromStr,
+        sync::Arc,
     };
     use tokio::{
         io::{AsyncBufReadExt, AsyncWriteExt, BufReader},
         net::{TcpListener, TcpStream},
+        sync::Mutex,
     };
 
     #[derive(Debug, Clone, Serialize, Deserialize)]
     pub struct Cordinate {
-        pub x: i32,
+        pub x: f64,
         pub y: f64,
     }
 
@@ -57,11 +59,17 @@ pub mod tcp_receiver {
         server_ip: Ipv4Addr,
         listen_port: u16,
         tx: std::sync::mpsc::Sender<Vec<Cordinate>>,
+        cords_clr: Arc<tokio::sync::Notify>,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
+        // TODO: Rewrite this.
+
+        let cordinates: Arc<Mutex<Vec<Cordinate>>> = Arc::new(Mutex::new(Vec::new()));
+        let server_lock = Arc::clone(&cordinates);
+        let tx_clone = tx.clone();
         let slint_future = async_compat::Compat::new(async move {
+            let mut cord_recv = server_lock.lock().await;
             let server = TcpListener::bind((server_ip, listen_port)).await.unwrap();
             println!("Server listening on port {server_ip}:{listen_port}");
-            let mut cordinates: Vec<Cordinate> = Vec::new();
             loop {
                 let (mut socket, addr) = server.accept().await.unwrap();
                 socket
@@ -71,18 +79,30 @@ pub mod tcp_receiver {
 
                 match handle_connection(socket, addr).await {
                     Ok(cord_option) => {
-                        match cord_option {
-                            Some(cord) => cordinates = [cordinates, cord].concat(),
+                        *cord_recv = match cord_option {
+                            Some(cord) => [cord_recv.clone(), cord].concat(),
                             None => continue,
                         };
                     }
                     Err(e) => return e,
                 };
-                println!("{:?}", cordinates);
-                tx.send(cordinates.clone()).unwrap();
+                println!("{:?}", cord_recv);
+                tx_clone.send(cord_recv.clone()).unwrap();
             }
             // slint::quit_event_loop().unwrap();
         });
+
+        let clr_lock = Arc::clone(&cordinates);
+        let tx_clone = tx.clone();
+        slint::spawn_local(async_compat::Compat::new(async move {
+            loop {
+                cords_clr.notified().await;
+                let mut cords = clr_lock.lock().await;
+                cords.clear();
+                tx_clone.send(cords.clone()).unwrap();
+                println!("Cleared cordinates.");
+            }
+        }))?;
 
         println!("Start Listening...");
         let _thread_local = slint::spawn_local(slint_future)?;
@@ -115,7 +135,7 @@ pub mod plot {
             .margin(20)
             .x_label_area_size(80)
             .y_label_area_size(80)
-            .build_cartesian_2d(0..4096, 0f64..1f64)?;
+            .build_cartesian_2d(0f64..1f64, 0f64..1f64)?;
 
         chart
             .configure_mesh()

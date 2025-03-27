@@ -6,7 +6,7 @@ use tcp_plotter::tcp_receiver::*;
 // use tcp_plotter::tcp_receiver::{tcp_server, Cordinate};
 
 slint::slint! {
-    export { MainWindow, ErrorDialog } from "ui/app-window.slint";
+    export { MainWindow } from "ui/app-window.slint";
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -15,10 +15,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
     let (tx_e, rx_e) = std::sync::mpsc::channel::<Arc<Box<dyn Error + Send + Sync>>>();
     let (tx_cord, rx_cord) = std::sync::mpsc::channel::<Vec<Cordinate>>();
+    let cords_clr = Arc::new(tokio::sync::Notify::new());
 
     // add ref count for callback function here.
     let main_window_weak = main_window.as_weak();
     let tx_e_server = tx_e.clone();
+    let cords_clr_clone = cords_clr.clone();
     main_window.on_tcp_server(move |server_ip_i, listen_port_i, pressed| {
         if !pressed {
             let ui = main_window_weak.clone();
@@ -35,18 +37,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             };
 
-            let tx_cord_clone = tx_cord.clone();
-            let tx_e_clone = tx_e_server.clone();
-            slint::spawn_local(async_compat::Compat::new(async move {
-                match tcp_server(server_ip, listen_port, tx_cord_clone) {
-                    Ok(_) => {}
-                    Err(e) => {
-                        tx_e_clone.send(Arc::new(e)).unwrap();
-                        return;
-                    }
+            match tcp_server(server_ip, listen_port, tx_cord.clone(), cords_clr_clone.clone()) {
+                Ok(_) => {}
+                Err(e) => {
+                    tx_e_server.send(Arc::new(e)).unwrap();
+                    return;
                 }
-            }))
-            .unwrap();
+            }
 
             slint::invoke_from_event_loop(move || {
                 ui.upgrade()
@@ -60,6 +57,11 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     });
 
+    let cords_clr_clone = cords_clr.clone();
+    main_window.on_clear_cords(move || {
+        cords_clr_clone.notify_one();
+    });
+    
     // let image_model = Arc::new(Mutex::new(slint::Image::default()));
     // let image_model_clone = image_model.clone();
     let main_window_weak = main_window.as_weak();

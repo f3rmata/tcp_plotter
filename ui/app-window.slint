@@ -1,4 +1,6 @@
-import { HorizontalBox, VerticalBox, Button, StandardButton, ProgressIndicator, LineEdit, TabWidget, TextEdit } from "std-widgets.slint";
+import { HorizontalBox, VerticalBox,
+     Button, StandardButton, ProgressIndicator, 
+     LineEdit, TabWidget, TextEdit, Palette } from "std-widgets.slint";
 import "../CaskaydiaCove-Regular.ttf";
 
 export component ErrorDialog inherits Dialog {
@@ -28,6 +30,7 @@ export component ErrorDialog inherits Dialog {
 export component MainWindow inherits Window {
     pure callback render_plot() -> image;
     pure callback tcp_server(string, int, bool);
+    pure callback clear_cords();
     
     out property <string> appid;
     out property <string> server_ip: "127.0.0.1";
@@ -37,9 +40,11 @@ export component MainWindow inherits Window {
     in property <string> console;
     in-out property <bool> pressed : false;
 
+    property <bool> dark-color-theme: Palette.color-scheme == ColorScheme.dark;
+
     title: "Im a simple Tcp Plotter";
-    min-width: 800px;
-    min-height: 600px;
+    min-width: 850px;
+    min-height: 700px;
     default-font-family: "Caskaydia Cove";
     default-font-size: 15px;
 
@@ -93,6 +98,13 @@ export component MainWindow inherits Window {
                 clicked => {
                     root.tcp_server(server_ip, listen_port, pressed);
                     pressed = !pressed;
+                }
+            }
+            
+            Button {
+                text: "Clear";
+                clicked => {
+                    root.clear_cords();
                 }
             }
         }
