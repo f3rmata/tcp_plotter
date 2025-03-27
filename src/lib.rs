@@ -80,7 +80,7 @@ pub mod tcp_receiver {
                 match handle_connection(socket, addr).await {
                     Ok(cord_option) => {
                         *cord_recv = match cord_option {
-                            Some(cord) => [cord_recv.clone(), cord].concat(),
+                            Some(cord) => cord,
                             None => continue,
                         };
                     }
@@ -92,14 +92,15 @@ pub mod tcp_receiver {
             // slint::quit_event_loop().unwrap();
         });
 
-        let clr_lock = Arc::clone(&cordinates);
+        // let clr_lock = Arc::clone(&cordinates);
         let tx_clone = tx.clone();
         slint::spawn_local(async_compat::Compat::new(async move {
             loop {
                 cords_clr.notified().await;
-                let mut cords = clr_lock.lock().await;
-                cords.clear();
-                tx_clone.send(cords.clone()).unwrap();
+                // let mut cords = clr_lock.lock().await;
+                // cords.clear();
+                // tx_clone.send(cords.clone()).unwrap();
+                tx_clone.send(vec![Cordinate { x: 0.0, y: 0.0 }]).unwrap();
                 println!("Cleared cordinates.");
             }
         }))?;
@@ -146,11 +147,11 @@ pub mod plot {
             .draw()?;
 
         chart
-            .draw_series(LineSeries::new(
-                data_series.iter().map(|x| (x.x, x.y)),
-                ShapeStyle::from(&BLUEGREY).stroke_width(3),
-            ))
-            .expect("error drawing series...")
+            .draw_series(
+                data_series
+                    .iter()
+                    .map(|x| Circle::new((x.x, x.y), 1.5, BLUEGREY.filled())),
+            )?
             .label("freq/amp response")
             .legend(|(x, y)| PathElement::new(vec![(x, y), (x + 20, y)], &BLUEGREY));
 

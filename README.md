@@ -11,12 +11,12 @@ cargo build --release
 ```
 
 Transmit your cordinates data in one line json. End with `\n`  
-note: x -> i32, y -> f64
+note: x -> f64, y -> f64
 
 ---
 
 Example data:
 
 ```json
-[{"x": 1, "y": 1.0}, {"x": 2, "y": 2.0}]
+[{"x": 0.5, "y": 0.5}, {"x": 0.6, "y": 0.2}]
 ```
