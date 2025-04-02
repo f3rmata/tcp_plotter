@@ -18,6 +18,10 @@ pub mod tcp_receiver {
         pub y: f64,
     }
 
+    slint::slint! {
+        export { MainWindow } from "ui/app-window.slint";
+    }
+
     async fn handle_connection(
         mut socket: TcpStream,
         addr: SocketAddr,
@@ -68,14 +72,15 @@ pub mod tcp_receiver {
         let server_lock = Arc::clone(&cordinates);
         let tx_clone = tx.clone();
         let slint_future = async_compat::Compat::new(async move {
-            let mut cord_recv = server_lock.lock().await;
-            let server = TcpListener::bind((server_ip, listen_port)).await.unwrap();
-            println!("Server listening on port {server_ip}:{listen_port}");
             tokio::select! {
-                    _ = stop_token.cancelled() => {
-                        println!("Server stopped.");
-                    }
-                    _ = async {
+                _ = stop_token.cancelled() => {
+                    println!("Server stopped.\n========");
+                    return;
+                },
+                _ = async {
+                    let mut cord_recv = server_lock.lock().await;
+                    let server = TcpListener::bind((server_ip, listen_port)).await.unwrap();
+                    println!("Server listening on port {server_ip}:{listen_port}");
                     loop {
                         let (mut socket, addr) = server.accept().await.unwrap();
                         socket

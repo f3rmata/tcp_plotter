@@ -4,6 +4,7 @@ use std::sync::Arc;
 use std::time::Duration;
 use tcp_plotter::plot::call_plotter;
 use tcp_plotter::tcp_receiver::*;
+// use tokio_util::sync::CancellationToken;
 // use tcp_plotter::tcp_receiver::{tcp_server, Cordinate};
 
 slint::slint! {
@@ -17,15 +18,19 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (tx_e, rx_e) = std::sync::mpsc::channel::<Arc<Box<dyn Error + Send + Sync>>>();
     let (tx_cord, rx_cord) = std::sync::mpsc::channel::<Vec<Cordinate>>();
     let cords_clr = Arc::new(tokio::sync::Notify::new());
-    let stop_token = tokio_util::sync::CancellationToken::new();
+    let mut stop_token = tokio_util::sync::CancellationToken::new();
 
     // add ref count for callback function here.
     let main_window_weak = main_window.as_weak();
     let tx_e_server = tx_e.clone();
     let cords_clr_clone = cords_clr.clone();
     main_window.on_tcp_server(move |server_ip_i, listen_port_i, pressed| {
+        if stop_token.is_cancelled() {
+            stop_token = tokio_util::sync::CancellationToken::new();
+        }
+
+        let ui = main_window_weak.clone();
         if !pressed {
-            let ui = main_window_weak.clone();
             let (server_ip, listen_port) = match parse_socket(server_ip_i, listen_port_i) {
                 Ok((ip, port)) => (ip, port),
                 Err(e) => {
@@ -60,15 +65,33 @@ fn main() -> Result<(), Box<dyn Error>> {
                 ui.upgrade().unwrap().window().request_redraw();
             })
             .unwrap();
+            std::thread::sleep(Duration::from_millis(100));
         } else {
             stop_token.cancel();
+            slint::invoke_from_event_loop(move || {
+                ui.upgrade()
+                    .unwrap()
+                    .set_console("Server stopping...".into());
+                ui.upgrade().unwrap().window().request_redraw();
+            })
+            .unwrap();
             std::thread::sleep(Duration::from_millis(100));
         }
     });
 
     let cords_clr_clone = cords_clr.clone();
+    let main_window_weak = main_window.as_weak();
     main_window.on_clear_cords(move || {
         cords_clr_clone.notify_one();
+
+        let ui = main_window_weak.clone();
+        slint::invoke_from_event_loop(move || {
+            ui.upgrade()
+                .unwrap()
+                .set_console("Clearing points...".into());
+            ui.upgrade().unwrap().window().request_redraw();
+        })
+        .unwrap();
     });
 
     // let image_model = Arc::new(Mutex::new(slint::Image::default()));
