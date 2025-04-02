@@ -4870,6 +4870,7 @@ dependencies = [
  "slint-build",
  "tokio",
  "tokio-stream",
+ "tokio-util",
 ]
 
 [[package]]

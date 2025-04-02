@@ -1,6 +1,7 @@
 use slint::{ComponentHandle, SharedPixelBuffer};
 use std::error::Error;
 use std::sync::Arc;
+use std::time::Duration;
 use tcp_plotter::plot::call_plotter;
 use tcp_plotter::tcp_receiver::*;
 // use tcp_plotter::tcp_receiver::{tcp_server, Cordinate};
@@ -16,6 +17,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let (tx_e, rx_e) = std::sync::mpsc::channel::<Arc<Box<dyn Error + Send + Sync>>>();
     let (tx_cord, rx_cord) = std::sync::mpsc::channel::<Vec<Cordinate>>();
     let cords_clr = Arc::new(tokio::sync::Notify::new());
+    let stop_token = tokio_util::sync::CancellationToken::new();
 
     // add ref count for callback function here.
     let main_window_weak = main_window.as_weak();
@@ -37,7 +39,13 @@ fn main() -> Result<(), Box<dyn Error>> {
                 }
             };
 
-            match tcp_server(server_ip, listen_port, tx_cord.clone(), cords_clr_clone.clone()) {
+            match tcp_server(
+                server_ip,
+                listen_port,
+                tx_cord.clone(),
+                cords_clr_clone.clone(),
+                stop_token.clone(),
+            ) {
                 Ok(_) => {}
                 Err(e) => {
                     tx_e_server.send(Arc::new(e)).unwrap();
@@ -53,7 +61,8 @@ fn main() -> Result<(), Box<dyn Error>> {
             })
             .unwrap();
         } else {
-            // TODO: add gracefully stop notify here.
+            stop_token.cancel();
+            std::thread::sleep(Duration::from_millis(100));
         }
     });
 
@@ -61,7 +70,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     main_window.on_clear_cords(move || {
         cords_clr_clone.notify_one();
     });
-    
+
     // let image_model = Arc::new(Mutex::new(slint::Image::default()));
     // let image_model_clone = image_model.clone();
     let main_window_weak = main_window.as_weak();

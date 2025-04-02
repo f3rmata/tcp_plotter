@@ -60,6 +60,7 @@ pub mod tcp_receiver {
         listen_port: u16,
         tx: std::sync::mpsc::Sender<Vec<Cordinate>>,
         cords_clr: Arc<tokio::sync::Notify>,
+        stop_token: tokio_util::sync::CancellationToken,
     ) -> Result<(), Box<dyn Error + Send + Sync>> {
         // TODO: Rewrite this.
 
@@ -70,24 +71,31 @@ pub mod tcp_receiver {
             let mut cord_recv = server_lock.lock().await;
             let server = TcpListener::bind((server_ip, listen_port)).await.unwrap();
             println!("Server listening on port {server_ip}:{listen_port}");
-            loop {
-                let (mut socket, addr) = server.accept().await.unwrap();
-                socket
-                    .write(format!("hello! {addr:?}\n").as_bytes())
-                    .await
-                    .unwrap();
-
-                match handle_connection(socket, addr).await {
-                    Ok(cord_option) => {
-                        *cord_recv = match cord_option {
-                            Some(cord) => cord,
-                            None => continue,
-                        };
+            tokio::select! {
+                    _ = stop_token.cancelled() => {
+                        println!("Server stopped.");
                     }
-                    Err(e) => return e,
-                };
-                println!("{:?}", cord_recv);
-                tx_clone.send(cord_recv.clone()).unwrap();
+                    _ = async {
+                    loop {
+                        let (mut socket, addr) = server.accept().await.unwrap();
+                        socket
+                            .write(format!("hello! {addr:?}\n").as_bytes())
+                            .await
+                            .unwrap();
+
+                        match handle_connection(socket, addr).await {
+                            Ok(cord_option) => {
+                                *cord_recv = match cord_option {
+                                    Some(cord) => cord,
+                                    None => continue,
+                                };
+                            }
+                            Err(e) => return e,
+                        };
+                        println!("{:?}", cord_recv);
+                        tx_clone.send(cord_recv.clone()).unwrap();
+                    }
+                } => {}
             }
             // slint::quit_event_loop().unwrap();
         });

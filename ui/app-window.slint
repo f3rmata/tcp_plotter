@@ -96,7 +96,7 @@ export component MainWindow inherits Window {
             Button {
                 text: "Listen";
                 checkable: true;
-                enabled: !pressed;
+                // enabled: !pressed;
                 primary: true;
                 clicked => {
                     root.tcp_server(server_ip, listen_port, pressed);
